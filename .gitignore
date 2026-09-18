@@ -1,0 +1,13 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Keys — never commit these
+.env
+
+# Rendered work and scratch output
+output/
+preview/
+
+# Update backups and version marker
+.frontier/
