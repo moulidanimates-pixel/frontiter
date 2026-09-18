@@ -1,0 +1,980 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Frontier</title>
+<style>
+/* ── FRONTIER ───────────────────────────────────────────────────────────────
+   Three questions, one button. Everything else is folded away until it's
+   needed, because most of the time the answer to "which options?" is "the
+   defaults". Edit this file and reload the page — nothing to rebuild.        */
+
+:root{
+  --bg:#08070a; --bg2:#0d0c10;
+  --panel:rgba(255,255,255,.035); --panel2:rgba(255,255,255,.055);
+  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+  --ink:#f6f4f0; --dim:#8d8880; --dimmer:#5f5b55;
+  --amber:#ffb020; --amber2:#ff8a00; --amber-dim:rgba(255,176,32,.14);
+  --ok:#4ade80; --bad:#f87171;
+  --r:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:
+    radial-gradient(900px 520px at 50% -12%, rgba(255,150,20,.10), transparent 62%),
+    var(--bg);
+  color:var(--ink); min-height:100vh;
+  font:15px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+::selection{background:rgba(255,176,32,.28)}
+
+/* ── shell ───────────────────────────────────────────────────────────────── */
+.wrap{max-width:820px;margin:0 auto;padding:0 24px 120px}
+
+header{padding:44px 0 8px;text-align:center}
+.logo{display:inline-flex;align-items:center;gap:14px;text-decoration:none}
+/* The supplied PNG is the flat mark on transparency — no glow baked in —
+   so the amber halo is added here, softly, to match the brand. */
+.logo img{height:44px;display:block;
+  filter:drop-shadow(0 0 22px rgba(255,150,20,.38)) drop-shadow(0 0 6px rgba(255,190,90,.22))}
+.logo .fallback{
+  font-weight:800;font-size:30px;letter-spacing:-.5px;
+  text-shadow:0 0 26px rgba(255,180,60,.5);
+}
+.logo .chev{color:var(--amber);font-size:32px;line-height:1;margin-right:2px}
+.tag{color:var(--dim);margin:8px 0 0;font-size:14.5px}
+
+/* ── steps ───────────────────────────────────────────────────────────────── */
+.step{margin-top:38px}
+.step-head{display:flex;align-items:baseline;gap:12px;margin:0 0 14px}
+.num{
+  width:24px;height:24px;flex:0 0 24px;border-radius:50%;
+  background:var(--amber-dim);border:1px solid rgba(255,176,32,.3);
+  color:var(--amber);font-size:12px;font-weight:700;
+  display:grid;place-items:center;transform:translateY(2px);
+}
+.step h2{margin:0;font-size:17px;font-weight:650;letter-spacing:-.2px}
+.step .hint{color:var(--dimmer);font-size:13.5px;margin-left:auto}
+
+/* channels */
+.channels{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.ch{
+  text-align:left;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r);padding:16px 18px;cursor:pointer;
+  transition:border-color .15s,background .15s,transform .12s;
+}
+.ch:hover{background:var(--panel2);border-color:var(--line2)}
+.ch:focus-visible{outline:none;border-color:rgba(255,176,32,.55);box-shadow:0 0 0 2px rgba(255,176,32,.3)}
+.ch:active{transform:scale(.995)}
+.ch[aria-pressed=true]{
+  border-color:rgba(255,176,32,.55);background:rgba(255,176,32,.07);
+  box-shadow:0 0 0 1px rgba(255,176,32,.2), 0 8px 30px -14px rgba(255,150,20,.6);
+}
+.ch b{display:block;font-size:15px;font-weight:650;margin-bottom:3px}
+.ch span{display:block;color:var(--dim);font-size:13px;line-height:1.45}
+.ch .lang{color:var(--dimmer);font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;margin-top:8px}
+/* the card's tagline and its points (tagline / points in the style file) */
+.ch .tagline{color:#cfc9c0;font-size:13px;line-height:1.45}
+.ch ul.pts{list-style:none;margin:9px 0 2px;padding:0;display:grid;gap:5px}
+.ch ul.pts li{position:relative;padding-left:15px;color:var(--dim);font-size:12.8px;line-height:1.42}
+.ch ul.pts li::before{content:"";position:absolute;left:3px;top:.55em;width:5px;height:5px;border-radius:50%;
+  background:var(--amber);opacity:.8}
+.ch-empty{
+  grid-column:1/-1;border:1px dashed var(--line2);border-radius:var(--r);
+  padding:26px;text-align:center;color:var(--dim);font-size:14px;
+}
+.ch-empty b{color:var(--ink);display:block;margin-bottom:6px;font-weight:600}
+
+/* titles */
+textarea#title{
+  width:100%;min-height:96px;resize:vertical;padding:16px 18px;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  outline:none;line-height:1.6;
+}
+textarea#title:focus{border-color:rgba(255,176,32,.5);background:var(--panel2)}
+textarea#title::placeholder{color:var(--dimmer)}
+
+/* length */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:9px 17px;cursor:pointer;font-size:14px;transition:.15s;
+}
+.chip:hover{background:var(--panel2);border-color:var(--line2)}
+.chip[aria-pressed=true]{
+  background:rgba(255,176,32,.1);border-color:rgba(255,176,32,.55);color:#ffd189;
+}
+.chip input{width:52px;background:none;border:none;outline:none;text-align:center}
+
+/* go */
+.go{
+  margin-top:36px;width:100%;padding:17px;border:none;border-radius:var(--r);
+  background:linear-gradient(180deg,var(--amber),var(--amber2));
+  color:#1a1206;font-size:16px;font-weight:750;letter-spacing:-.1px;cursor:pointer;
+  box-shadow:0 10px 34px -12px rgba(255,150,20,.75);
+  transition:filter .15s,transform .1s;
+}
+.go:hover{filter:brightness(1.07)}
+.go:active{transform:translateY(1px)}
+.go:disabled{opacity:.4;cursor:default;filter:none;box-shadow:none}
+
+/* options disclosure */
+details.opts{margin-top:18px}
+details.opts summary{
+  cursor:pointer;color:var(--dim);font-size:13.5px;list-style:none;
+  display:inline-flex;align-items:center;gap:7px;padding:6px 0;
+}
+details.opts summary::-webkit-details-marker{display:none}
+details.opts summary::before{content:"›";transition:transform .18s;display:inline-block}
+details.opts[open] summary::before{transform:rotate(90deg)}
+details.opts summary:hover{color:var(--ink)}
+.optbox{
+  margin-top:12px;padding:18px;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--r);
+  display:grid;gap:13px;
+}
+.opt{display:flex;align-items:center;gap:11px;font-size:14px}
+.opt input[type=checkbox]{
+  appearance:none;width:19px;height:19px;flex:0 0 19px;border-radius:6px;
+  border:1px solid var(--line2);background:var(--panel2);cursor:pointer;position:relative;
+}
+.opt input[type=checkbox]:checked{background:var(--amber);border-color:var(--amber)}
+.opt input[type=checkbox]:checked::after{
+  content:"";position:absolute;left:6px;top:2px;width:5px;height:10px;
+  border:solid #1a1206;border-width:0 2px 2px 0;transform:rotate(42deg);
+}
+.opt small{color:var(--dimmer);font-size:12.5px}
+.opt .num-in{
+  width:56px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:8px;padding:5px 9px;text-align:center;outline:none;
+}
+
+/* ── running ─────────────────────────────────────────────────────────────── */
+.run{
+  margin-top:32px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;
+}
+.run-top{padding:18px 20px;display:flex;align-items:center;gap:14px}
+.spin{
+  width:16px;height:16px;flex:0 0 16px;border-radius:50%;
+  border:2px solid rgba(255,176,32,.25);border-top-color:var(--amber);
+  animation:sp .8s linear infinite;
+}
+@keyframes sp{to{transform:rotate(360deg)}}
+.run-top b{font-weight:600;font-size:15px}
+.run-top .el{margin-left:auto;color:var(--dimmer);font-size:13px;font-variant-numeric:tabular-nums}
+.bar{height:2px;background:rgba(255,255,255,.07)}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--amber2),var(--amber));
+  width:0;transition:width .6s ease}
+.log{
+  margin:0;padding:14px 20px 18px;max-height:230px;overflow:auto;
+  font:12.5px/1.72 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--dim);white-space:pre-wrap;word-break:break-word;
+}
+.log b{color:var(--ink);font-weight:500}
+/* the render, drawn as its stages */
+.stages{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;padding:16px 20px 6px}
+.stg{position:relative;border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 44px;min-height:62px;
+  background:rgba(255,255,255,.015);transition:border-color .3s,background .3s}
+.stg .ic{position:absolute;left:14px;top:14px;width:18px;height:18px;border-radius:50%;border:2px solid var(--line2)}
+.stg b{display:block;font-size:13.5px;font-weight:600;color:var(--dim)}
+.stg span{display:block;margin-top:3px;font-size:12px;line-height:1.35;color:var(--dimmer);overflow:hidden;
+  text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.stg .t{position:absolute;right:12px;top:12px;font-size:11.5px;color:var(--dimmer);font-variant-numeric:tabular-nums}
+.stg.active{border-color:rgba(255,176,32,.45);background:var(--amber-dim)}
+.stg.active b{color:var(--ink)}
+.stg.active .ic{border-color:var(--amber);border-top-color:transparent;animation:sp .9s linear infinite}
+.stg.done b{color:var(--ink)}
+.stg.done .ic{border-color:var(--ok);background:var(--ok);
+  box-shadow:inset 0 0 0 3px var(--bg)}
+.stg.skip{opacity:.45}
+.stg.error{border-color:rgba(248,113,113,.5)}
+.stg.error .ic{border-color:var(--bad);background:var(--bad)}
+.stg .mini{height:3px;border-radius:2px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden}
+.stg .mini i{display:block;height:100%;background:var(--amber);width:0;transition:width .5s}
+.logbox{margin:6px 20px 14px}
+.logbox summary{cursor:pointer;color:var(--dimmer);font-size:12.5px;padding:6px 0}
+.logbox .log{padding:10px 0 4px}
+.log .e{color:var(--bad)}
+
+/* queue */
+.qrow{
+  display:flex;align-items:center;gap:12px;padding:12px 20px;
+  border-top:1px solid var(--line);font-size:14px;
+}
+.qrow .dot{width:7px;height:7px;border-radius:50%;background:var(--dimmer);flex:0 0 7px}
+.qrow.done .dot{background:var(--ok)}
+.qrow.error .dot{background:var(--bad)}
+.qrow .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qrow .s{color:var(--dimmer);font-size:12.5px}
+
+/* ── library ─────────────────────────────────────────────────────────────── */
+.lib{margin-top:56px}
+.lib h2{font-size:17px;font-weight:650;margin:0 0 16px;letter-spacing:-.2px}
+.cards{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  overflow:hidden;transition:border-color .15s,transform .12s;
+}
+.card:hover{border-color:var(--line2);transform:translateY(-2px)}
+.card video{width:100%;aspect-ratio:16/9;display:block;background:#000;object-fit:cover}
+.card .meta{padding:12px 14px}
+.card .meta b{display:block;font-size:13.5px;font-weight:600;line-height:1.4;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card .meta span{color:var(--dimmer);font-size:11.5px;display:block;margin-top:5px}
+.lib-empty{color:var(--dimmer);font-size:14px;padding:8px 0}
+
+/* ── footer ──────────────────────────────────────────────────────────────── */
+footer{
+  margin-top:74px;padding-top:26px;border-top:1px solid var(--line);
+  color:var(--dimmer);font-size:13px;
+}
+.foot-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+footer .by{margin-right:auto}
+/* The byline is a link, so it looks like one on hover without shouting in a
+   row that is otherwise deliberately quiet. */
+footer .by a{
+  color:var(--dim);text-decoration:none;border-bottom:1px solid transparent;
+  transition:.15s;
+}
+footer .by a:hover{color:var(--ink);border-bottom-color:rgba(255,176,32,.55)}
+
+/* Updates sit above the credits, not beside them: a new version of the tool is
+   worth more to the person using it than a byline is, and buried in a row of
+   footer links it reads as one more logo. */
+.updates{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding:15px 18px;margin-bottom:20px;border-radius:14px;
+  background:linear-gradient(100deg, rgba(255,176,32,.09), rgba(255,138,0,.04));
+  border:1px solid rgba(255,176,32,.22);
+}
+.updates .txt{flex:1;min-width:210px;color:var(--dim);line-height:1.5}
+.updates .txt b{display:block;color:var(--ink);font-weight:600;font-size:14px;margin-bottom:2px}
+.updates a{
+  text-decoration:none;white-space:nowrap;
+  background:rgba(255,176,32,.14);border:1px solid rgba(255,176,32,.45);
+  color:#ffd189;padding:9px 16px;border-radius:999px;font-weight:600;font-size:13px;
+  transition:.15s;
+}
+.updates a:hover{background:rgba(255,176,32,.24);color:#fff0d0}
+footer a.algrow{
+  display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+  color:var(--dim);padding:7px 13px;border:1px solid var(--line);border-radius:999px;
+  transition:.15s;
+}
+footer a.algrow:hover{border-color:var(--line2);color:var(--ink);background:var(--panel)}
+/* The PNG carries its own rounded corners, so no border-radius here —
+   a CSS radius on top would clip the frame the mark already draws. */
+footer a.algrow img{height:20px;width:20px;display:block}
+
+.err{
+  margin-top:16px;padding:13px 16px;border-radius:12px;font-size:14px;
+  background:rgba(248,113,113,.09);border:1px solid rgba(248,113,113,.28);color:#fca5a5;
+}
+.hidden{display:none!important}
+
+/* the cast box */
+.chars{display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 10px}
+.chr{position:relative;width:112px;height:168px;padding:0;border-radius:11px;overflow:hidden;cursor:pointer;
+  background:#f1eee8;border:1px solid var(--line2);transition:border-color .15s,box-shadow .15s,transform .15s}
+.chr:hover{transform:translateY(-1px)}
+.chr img{width:100%;height:100%;object-fit:cover;object-position:50% 6%;display:block}
+.chr span{position:absolute;left:0;right:0;bottom:0;padding:18px 7px 6px;font-size:10.5px;line-height:1.25;
+  color:#fff;text-align:left;background:linear-gradient(transparent,rgba(0,0,0,.78))}
+.chr[aria-pressed="true"]{border-color:var(--amber);box-shadow:0 0 0 2px var(--amber)}
+.chr.up{background:var(--panel2);border:1px dashed var(--line2);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px}
+.chr.up b{font-size:28px;font-weight:300;line-height:1;color:var(--amber)}
+.chr.up span{position:static;background:none;padding:0 10px;text-align:center;color:var(--dim);font-size:11.5px}
+.chr.busy{opacity:.55;pointer-events:none}
+.charnote{font-size:12px;color:var(--dimmer);line-height:1.55}
+.chardesc{margin:14px 0 0}
+.picsonly{font-size:12.5px;color:var(--dim);line-height:1.55}
+.picsonly b{color:var(--ink);font-weight:600}
+.charbox{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.charbox textarea{width:100%;margin-top:10px;padding:11px 13px;border-radius:10px;resize:vertical;
+  background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--ink);
+  font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;outline:none}
+.charbox textarea:focus{border-color:var(--amber)}
+.ch .chref{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;margin-bottom:10px;
+  border:1px solid var(--line)}
+/* a channel's sample (look.sample): plays muted on its card, "Watch sample" opens it with sound */
+.chmedia{position:relative;margin-bottom:10px}
+.chmedia .chref{display:block;margin-bottom:0;background:#000}
+.watch{position:absolute;left:8px;bottom:8px;display:inline-flex;align-items:center;gap:7px;
+  padding:5px 11px 5px 9px;border-radius:999px;cursor:pointer;
+  background:rgba(8,7,10,.74);border:1px solid rgba(255,255,255,.18);color:var(--ink);
+  font-size:11.5px;font-weight:600;letter-spacing:.1px;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:border-color .15s,background .15s}
+.watch:hover,.watch:focus-visible{outline:none;border-color:rgba(255,176,32,.6);background:rgba(22,15,6,.88)}
+.watch i{width:0;height:0;border-style:solid;border-width:4.5px 0 4.5px 7px;
+  border-color:transparent transparent transparent var(--amber)}
+.lightbox{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+  padding:4vh 4vw;background:rgba(4,3,6,.88);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.lb{width:min(1120px,100%)}
+.lb-top{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.lb-top b{font-size:15px;font-weight:650}
+.lb-top span{color:var(--dim);font-size:13px}
+.lb-x{margin-left:auto;align-self:center;width:34px;height:34px;border-radius:50%;cursor:pointer;
+  font-size:20px;line-height:1;background:var(--panel2);border:1px solid var(--line2);color:var(--ink)}
+.lb-x:hover,.lb-x:focus-visible{outline:none;border-color:rgba(255,176,32,.6)}
+.lb video{display:block;width:100%;max-height:80vh;aspect-ratio:16/9;background:#000;border-radius:12px;
+  border:1px solid var(--line)}
+/* the mix sliders */
+.mix{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.mix-h{font-size:13px;color:var(--ink);margin-bottom:10px}
+.mix-h small{color:var(--dim);font-weight:400}
+.mix label{display:grid;grid-template-columns:118px 44px 1fr;align-items:center;gap:10px;
+  margin:9px 0;font-size:13px;color:var(--dim)}
+.mix label b{color:var(--amber);font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.mix input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;
+  background:var(--line2);outline:none;cursor:pointer}
+.mix input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:var(--amber);border:2px solid #14110d;box-shadow:0 1px 4px rgba(0,0,0,.6)}
+.mix-note{margin-top:10px;font-size:11.5px;color:var(--dimmer);line-height:1.5}
+.card .dl{display:inline-block;margin-top:8px;font-size:11.5px;color:var(--amber);text-decoration:none}
+.card .acts{display:flex;flex-wrap:wrap;gap:0 14px}
+.card button.dl{background:none;border:0;padding:0;cursor:pointer;font:inherit;font-size:11.5px;color:var(--amber)}
+/* ── what goes into the video ────────────────────────────────────────────── */
+.ch .cost{display:inline-block;margin-top:8px;color:var(--amber);font-size:12px;font-weight:600}
+.feat-tip{margin-top:10px;color:var(--dim);font-size:12px;line-height:1.5}
+.feat .price{font-style:normal;font-weight:500;font-size:11px;color:var(--dimmer);margin-left:6px;
+  border:1px solid var(--line);border-radius:6px;padding:1px 6px;white-space:nowrap}
+.feat.on .price{color:var(--amber);border-color:rgba(255,176,32,.35)}
+.feat-tip b{color:#e0675a;font-weight:600}
+.feat-h{display:flex;align-items:baseline;gap:10px;font-size:14px;font-weight:600;margin:2px 0 12px}
+.feat-h small{color:var(--dim);font-weight:400;font-size:12.5px}
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:640px){.feats{grid-template-columns:1fr}}
+.feat{display:flex;gap:11px;align-items:flex-start;padding:12px 13px;border-radius:12px;
+  background:var(--panel);border:1px solid var(--line);cursor:pointer;transition:border-color .15s,background .15s}
+.feat:hover{border-color:var(--line2);background:var(--panel2)}
+.feat.on{border-color:rgba(255,176,32,.38);background:rgba(255,176,32,.06)}
+.feat.child{margin-left:22px}
+.feat input[type=checkbox]{appearance:none;-webkit-appearance:none;width:18px;height:18px;flex:0 0 18px;margin-top:2px;
+  border-radius:5px;border:1px solid var(--line2);background:var(--panel2);cursor:pointer;position:relative}
+.feat input[type=checkbox]:checked{background:var(--amber);border-color:var(--amber)}
+.feat input[type=checkbox]:checked::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:10px;
+  border:solid #14110d;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.feat b{display:block;font-size:14px;font-weight:600}
+.feat span{display:block;color:var(--dim);font-size:12.5px;line-height:1.45;margin-top:2px}
+.feat .miss{color:var(--bad);font-size:12px;margin-top:5px;font-weight:600}
+.feat.missing{opacity:.85;cursor:not-allowed;border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.05)}
+.feat.missing input{cursor:not-allowed}
+.feat-note{margin:12px 0 0;color:var(--dim);font-size:12.5px;line-height:1.5}
+.opt-sec{margin-top:22px}
+.opt-sec textarea{width:100%;margin-top:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:11px 13px;font-size:13.5px;line-height:1.5;resize:vertical;outline:none}
+.opt-sec textarea:focus{border-color:var(--line2)}
+.api-warn{margin-top:12px;padding:11px 14px;border-radius:12px;border:1px solid rgba(248,113,113,.4);
+  background:rgba(248,113,113,.07);color:var(--bad);font-size:13px;line-height:1.5}
+.chips.off{opacity:.35;pointer-events:none}
+.len-note{margin-top:10px;color:var(--amber);font-size:12.5px}
+
+.card .dl:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <a class="logo" href="/" aria-label="Frontier">
+      <img id="brandmark" src="/brand/frontier.png" alt="Frontier"
+           onerror="this.remove();document.getElementById('wordmark').classList.remove('hidden')">
+      <span id="wordmark" class="fallback hidden"><span class="chev">&rsaquo;</span>Frontier</span>
+    </a>
+    <p class="tag">Type a title. Get a finished video.</p>
+  </header>
+
+  <!-- 1 ─ channel -->
+  <section class="step">
+    <div class="step-head">
+      <span class="num">1</span><h2>Channel</h2>
+      <span class="hint" id="chHint"></span>
+    </div>
+    <div class="channels" id="channels"></div>
+  </section>
+
+  <!-- 2 ─ titles -->
+  <section class="step">
+    <div class="step-head">
+      <span class="num">2</span><h2>Title</h2>
+      <span class="hint">one per line makes several</span>
+    </div>
+    <textarea id="title" placeholder="The Shadow You Keep Feeding Without Knowing It"></textarea>
+  </section>
+
+  <!-- 3 ─ length -->
+  <section class="step">
+    <div class="step-head">
+      <span class="num">3</span><h2>Length</h2>
+      <span class="hint" id="costHint"></span>
+    </div>
+    <div class="chips" id="lens"></div>
+    <div class="len-note hidden" id="lenNote">Your own script is in Options — the video is as long as your script, so length is ignored.</div>
+  </section>
+
+  <button class="go" id="go">Create video</button>
+  <div class="err hidden" id="err"></div>
+
+  <div class="api-warn hidden" id="apiWarn"></div>
+
+  <details class="opts" open>
+    <summary>Options</summary>
+    <div class="optbox">
+      <div class="feat-h">What goes into this video <small id="featCost"></small></div>
+      <div class="feats" id="feats"></div>
+      <div class="feat-note" id="featNote"></div>
+      <div class="feat-tip">Ticked = in this video. <b>Red</b> = an API key is missing (the line says which).
+        Want your own look, colours or a new style? Open this folder in Claude Code and describe it — README → <i>Make it yours</i>.</div>
+
+      <div class="opt-sec">
+        <div class="mix-h">Your own script <small>— optional. Paste a finished script and Frontier follows it word for
+          word; the length above no longer applies.</small></div>
+        <textarea id="o_script" rows="5" spellcheck="false"
+          placeholder="Leave empty and Frontier writes the script from your title and your channel's style — or paste your own here."></textarea>
+      </div>
+
+      <div class="opt-sec">
+        <div class="mix-h">Extra instructions <small>— optional. Anything this one video should do differently; the script
+          writer, the storyboard and the graphics all read it.</small></div>
+        <textarea id="o_extra" rows="3" spellcheck="true"
+          placeholder="e.g. Focus on the 1980s. Explain it for beginners. Use gold and navy in the graphics. No maps."></textarea>
+      </div>
+
+      <div class="charbox hidden" id="charBox">
+        <div class="mix-h">Your character <small>— the person in every picture. Pick one, or upload your own.</small></div>
+        <div class="chars" id="chars"></div>
+        <input type="file" id="charFile" accept="image/png,image/jpeg,image/webp" hidden>
+        <div class="charnote">The picture you pick goes to the image model as the reference for every single
+          still, through a public catbox.moe link — the image model only takes references as links. A full-body
+          drawing on a plain background works best.</div>
+        <div class="mix-h chardesc">The same person in words <small>— repeated in every picture prompt. Keep it
+          true to the picture; an uploaded character is described for you, and you can edit it.</small></div>
+        <textarea id="o_char" rows="5" spellcheck="false"
+          placeholder="THE MAIN CHARACTER is the woman from the reference image, and she is in EVERY frame: …"></textarea>
+      </div>
+
+      <div class="opt-sec">
+        <div class="mix-h">Output</div>
+        <label class="opt"><input type="checkbox" id="o_subs" checked>
+          <span>Burn in subtitles <small>— in your channel colour</small></span></label>
+        <label class="opt"><input type="checkbox" id="o_thumb" checked>
+          <span>Thumbnails</span>
+          <input class="num-in" type="number" id="o_thumbn" min="1" max="4" value="2"></label>
+        <label class="opt"><input type="checkbox" id="o_desc" checked>
+          <span>YouTube description <small>— description, chapters and tags, ready to paste</small></span>
+          <input class="num-in" type="number" id="o_chapters" min="0" max="20" value="8" title="how many chapters"></label>
+        <label class="opt"><input type="checkbox" id="o_sources">
+          <span>Look for sources <small>— real references; a link that does not answer is dropped</small></span>
+          <input class="num-in" type="number" id="o_sourcesn" min="3" max="10" value="5"></label>
+        <label class="opt"><input type="checkbox" id="o_force">
+          <span>Redo everything <small>— ignore anything already made for this title</small></span></label>
+      </div>
+    </div>
+  </details>
+
+  <!-- running -->
+  <section class="run hidden" id="run">
+    <div class="run-top">
+      <span class="spin"></span><b id="runTitle">Working…</b>
+      <span class="el" id="runEl"></span>
+    </div>
+    <div class="bar"><i id="runBar"></i></div>
+    <div class="stages" id="stages"></div>
+    <details class="logbox"><summary>Details</summary><pre class="log" id="log"></pre></details>
+    <div id="queue"></div>
+  </section>
+
+  <!-- library -->
+  <section class="lib">
+    <h2>Your videos</h2>
+    <div class="cards" id="cards"></div>
+    <div class="lib-empty hidden" id="libEmpty">Nothing yet — your first video will land here.</div>
+  </section>
+
+  <footer>
+    <div class="updates">
+      <span class="txt">
+        <b>New templates, new animations, new features</b>
+        Frontier keeps getting built. Grab the latest version — and everything
+        that ships after it — from the Whop.
+      </span>
+      <a href="https://whop.com/frontierhq/frontier-access/" target="_blank" rel="noopener">
+        Get updates &rarr;
+      </a>
+    </div>
+    <div class="foot-row">
+      <span class="by">FRONTIER &middot; made by
+        <a href="https://x.com/primalrobin" target="_blank" rel="noopener">Primal Robin</a>
+      </span>
+      <a class="algrow" href="https://go.algrow.online/tool" target="_blank" rel="noopener">
+        <img src="/brand/algrow.png" alt="" onerror="this.remove()">
+        Powered by Algrow
+      </a>
+    </div>
+  </footer>
+
+</div>
+
+<!-- a channel's sample, big and with sound -->
+<div class="lightbox hidden" id="lightbox" role="dialog" aria-modal="true" aria-labelledby="lbTitle">
+  <div class="lb">
+    <div class="lb-top"><b id="lbTitle"></b><span>sample video</span>
+      <button class="lb-x" id="lbClose" type="button" aria-label="Close">&times;</button></div>
+    <video id="lbVideo" controls playsinline preload="auto"></video>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const api = (u, o) => fetch(u, o).then(r => r.json());
+
+let CH = null;                  // chosen channel
+let CHANNELS = {};              // name -> what /api/channels said about it
+let DLC = {};                   // which scene engines this Frontier has on disk
+let FEATURES = [];              // every switch Options can show (features.py)
+let CAPS = {base: {}, features: {}};   // which API keys are there, per switch
+let PRICES = {voice: {per_min: 0, note: ''}, features: {}, picture: 0.01};   // rough $ per minute (features.py)
+let MIN = 10;                   // chosen length
+let WATCH = null;               // slug being followed
+
+/* ── samples ────────────────────────────────────────────────────────────── */
+/* A channel whose style file has `look.sample` plays that video, muted, on its card while the card is
+   on screen — never for someone whose system asks for less motion. "Watch sample" opens it big, with sound. */
+const CALM = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const SEEN = 'IntersectionObserver' in window
+  ? new IntersectionObserver(es => es.forEach(e => {
+      if(e.isIntersecting && !CALM && $('#lightbox').classList.contains('hidden')) e.target.play().catch(() => {});
+      else e.target.pause();
+    }), {threshold: 0.2})
+  : {observe: v => { if(!CALM) v.play().catch(() => {}); }, unobserve(){}, disconnect(){}};
+function watchSample(n){
+  const c = CHANNELS[n] || {}, v = $('#lbVideo');
+  document.querySelectorAll('video.chref').forEach(x => x.pause());
+  $('#lbTitle').textContent = c.label || n;
+  v.src = '/sample/' + encodeURIComponent(n);
+  $('#lightbox').classList.remove('hidden');
+  v.play().catch(() => {});
+  $('#lbClose').focus();
+}
+function closeSample(){
+  const v = $('#lbVideo');
+  v.pause(); v.removeAttribute('src'); v.load();
+  $('#lightbox').classList.add('hidden');
+  document.querySelectorAll('video.chref').forEach(x => { SEEN.unobserve(x); SEEN.observe(x); });
+}
+$('#lbClose').onclick = closeSample;
+$('#lightbox').onclick = e => { if(e.target === e.currentTarget) closeSample(); };
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && !$('#lightbox').classList.contains('hidden')) closeSample();
+});
+
+/* ── channels ───────────────────────────────────────────────────────────── */
+async function loadChannels(){
+  const {channels, dlc, features, caps, prices} = await api('/api/channels');
+  DLC = dlc || {};
+  FEATURES = features || [];
+  CAPS = caps || CAPS;
+  PRICES = prices || PRICES;
+  // what nothing can run without: a script writer and a voice
+  const base = Object.values(CAPS.base || {}).filter(x => !x.ok).map(x => x.why);
+  $('#apiWarn').classList.toggle('hidden', !base.length);
+  $('#apiWarn').innerHTML = base.map(esc).join('<br>');
+  const box = $('#channels');
+  if(!channels.length){
+    box.innerHTML = `<div class="ch-empty"><b>No channels yet</b>
+      Open this folder in Claude Code and tell it about your channel —
+      it writes the style file for you.</div>`;
+    $('#chHint').textContent = '';
+    return;
+  }
+  CHANNELS = {}; channels.forEach(c => CHANNELS[c.name] = c);
+  SEEN.disconnect();
+  const refImg = c => c.reference ? `<img class="chref" src="/ref/${encodeURIComponent(c.name)}" alt="" onerror="this.remove()">` : '';
+  box.innerHTML = channels.map(c => `
+    <div class="ch" data-n="${esc(c.name)}" role="button" tabindex="0" aria-pressed="false">
+      ${c.sample ? `<div class="chmedia">
+        <video class="chref" src="/sample/${encodeURIComponent(c.name)}" muted loop playsinline preload="metadata"></video>
+        <button class="watch" type="button" data-n="${esc(c.name)}"><i></i>Watch sample</button>
+      </div>` : refImg(c)}
+      <b>${esc(c.label)}</b>
+      ${(c.points || []).length
+        ? `${c.tagline ? `<span class="tagline">${esc(c.tagline)}</span>` : ''}
+           <ul class="pts">${c.points.map(x => `<li>${esc(x)}</li>`).join('')}</ul>`
+        : `<span>${esc(c.description || '')}</span>`}
+      ${c.cost ? `<span class="cost">${esc(c.cost)}</span>` : ''}
+      <span class="lang">${esc(c.language)}</span>
+    </div>`).join('');
+  box.querySelectorAll('.ch').forEach(b => {
+    b.onclick = () => pickChannel(b.dataset.n);
+    b.onkeydown = e => {
+      if(e.target !== b || (e.key !== 'Enter' && e.key !== ' ')) return;
+      e.preventDefault();
+      pickChannel(b.dataset.n);
+    };
+  });
+  box.querySelectorAll('.watch').forEach(w => w.onclick = e => { e.stopPropagation(); watchSample(w.dataset.n); });
+  box.querySelectorAll('video.chref').forEach(v => {
+    const c = CHANNELS[v.closest('.ch').dataset.n] || {};
+    // a sample that will not play gives its place back to the channel's picture
+    v.onerror = () => { v.closest('.chmedia').outerHTML = refImg(c); };
+    v.muted = true;
+    SEEN.observe(v);
+  });
+  pickChannel(localStorage.getItem('fr.ch') || channels[0].name);
+  $('#chHint').textContent = channels.length + (channels.length === 1 ? ' channel' : ' channels');
+}
+function pickChannel(n){
+  const btns = document.querySelectorAll('.ch');
+  if(![...btns].some(b => b.dataset.n === n)) n = btns[0]?.dataset.n;
+  CH = n;
+  btns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.n === n)));
+  try{ localStorage.setItem('fr.ch', n); }catch(e){}
+  const c = CHANNELS[n] || {};
+  // The cast: shown only by channels built on a recurring character, and only
+  // pre-filled while you have not written your own.
+  const box = $('#charBox'), ta = $('#o_char');
+  box.classList.toggle('hidden', !c.character);
+  if(c.character){
+    let saved = '';
+    try{ saved = localStorage.getItem('fr.char.' + n) || ''; }catch(e){}
+    drawChars();
+    pickChar(CHARS.some(k => k.rel === saved) ? saved : (c.character_image || ''), !CHAR_TOUCHED);
+  }
+  drawFeatures();
+  if(typeof MIN !== 'undefined' && MIN) pickLen(MIN, true);
+}
+
+/* ── what goes into the video ───────────────────────────────────────────── */
+/* The channel says which switches it offers and which start ticked; your own ticks are remembered
+   per channel. A switch whose API key is missing is drawn in red, unticked, with the key to add. */
+function featState(){
+  try{ return JSON.parse(localStorage.getItem('fr.feat.' + CH) || '{}') || {}; }catch(e){ return {}; }
+}
+function featOn(k){
+  const c = CHANNELS[CH] || {}, f = c.features || {};
+  const offered = f.offered || FEATURES.map(x => x.key);
+  if(!offered.includes(k)) return false;
+  if(!(CAPS.features[k] || {ok: true}).ok) return false;
+  const st = featState();
+  return k in st ? !!st[k] : (f.on || offered).includes(k);
+}
+function drawFeatures(){
+  const c = CHANNELS[CH] || {}, f = c.features || {};
+  const offered = f.offered || FEATURES.map(x => x.key);
+  const list = FEATURES.filter(x => offered.includes(x.key));
+  $('#featCost').textContent = c.cost ? '— ' + c.label + ': ' + c.cost : '';
+  $('#feats').innerHTML = list.map(x => {
+    const cap = CAPS.features[x.key] || {ok: true};
+    const on = featOn(x.key);
+    const child = x.parent && offered.includes(x.parent);
+    const pr = (PRICES.features || {})[x.key] || {};
+    const perMin = x.key === 'ai_images' ? (c.pictures_per_min || 2.5) * (PRICES.picture || 0.01) : (pr.per_min || 0);
+    const tag = perMin > 0.0005 ? `≈ $${perMin < 0.1 ? perMin.toFixed(3) : perMin.toFixed(2)}/min` : 'free';
+    return `<label class="feat${on ? ' on' : ''}${cap.ok ? '' : ' missing'}${child ? ' child' : ''}" data-k="${x.key}">
+      <input type="checkbox" ${on ? 'checked' : ''} ${cap.ok ? '' : 'disabled'}>
+      <div><b>${esc(x.label)} <em class="price" title="${esc(pr.note || '')}">${tag}</em></b><span>${esc(x.hint)}</span>
+      ${cap.ok ? '' : `<div class="miss">${esc(cap.why)}</div>`}</div></label>`;
+  }).join('');
+  document.querySelectorAll('.feat input').forEach(inp => inp.onchange = e => {
+    const k = e.target.closest('.feat').dataset.k, st = featState();
+    st[k] = e.target.checked;
+    try{ localStorage.setItem('fr.feat.' + CH, JSON.stringify(st)); }catch(err){}
+    drawFeatures();
+    updateEstimate();
+  });
+  // depth pop needs AI pictures to lift a subject from
+  const depth = document.querySelector('.feat[data-k="depth"]');
+  if(depth && offered.includes('ai_images') && !featOn('ai_images')){
+    depth.classList.add('missing');
+    depth.querySelector('input').disabled = true;
+    depth.querySelector('input').checked = false;
+  }
+  $('#featNote').textContent = c.options_note || '';
+}
+/* rough cost and render time for this video: the length (or the pasted script's length) times what
+   every ticked switch costs a minute with the services in .env, plus the voice */
+function updateEstimate(){
+  const c = CHANNELS[CH] || {};
+  const script = ($('#o_script') ? $('#o_script').value : '').trim();
+  const minutes = script ? Math.max(0.3, script.split(/\s+/).length / (c.wpm || 140)) : MIN;
+  let perMin = (PRICES.voice || {}).per_min || 0;
+  FEATURES.forEach(x => {
+    if(!featOn(x.key)) return;
+    if(x.key === 'depth' && !featOn('ai_images') && (c.features?.offered || []).includes('ai_images')) return;
+    perMin += x.key === 'ai_images' ? (c.pictures_per_min || 2.5) * (PRICES.picture || 0.01)
+                                    : (((PRICES.features || {})[x.key] || {}).per_min || 0);
+  });
+  // a story channel draws its pictures whatever the switches say
+  if(!(c.features?.offered || []).includes('ai_images') && c.pictures_per_min > 3) perMin += c.pictures_per_min * (PRICES.picture || 0.01);
+  const usd = perMin * minutes, rx = c.render_x || 1.6;
+  const money = usd < 0.1 ? 'under $0.10' : `about $${usd < 10 ? usd.toFixed(2) : Math.round(usd)}`;
+  $('#costHint').textContent = `about ${Math.max(4, Math.round(minutes * rx))} min to render · ${money} in API costs`;
+  $('#costHint').title = `≈ $${perMin.toFixed(2)} per minute of video with the services in your .env — an estimate, `
+    + `your Algrow / WaveSpeed / kie dashboards have the real numbers`;
+}
+
+function featPayload(){
+  const out = {};
+  FEATURES.forEach(x => { out[x.key] = featOn(x.key) && !(x.key === 'depth' && (CHANNELS[CH]?.features?.offered || []).includes('ai_images') && !featOn('ai_images')); });
+  return out;
+}
+
+/* ── the character ──────────────────────────────────────────────────────── */
+let CHARS = [], CHAR_PICK = '';
+const CHAR_GENERIC = 'THE MAIN CHARACTER is the person from the reference image, and they are in EVERY frame — '
+  + 'the same face, hair, skin, build and clothes, drawn exactly this way.\n'
+  + 'In a close-up they are still there — their hand and sleeve holding the phone, their shoulder in the foreground.\n'
+  + 'Anyone else who returns in the story keeps the same face, hair and clothes every time.';
+async function loadChars(){
+  try{ CHARS = (await api('/api/characters')).characters || []; }catch(e){ CHARS = []; }
+}
+function drawChars(){
+  const own = (CHANNELS[CH] || {}).character_image || '';
+  const list = [...CHARS].sort((a, b) => (b.rel === own) - (a.rel === own) || b.mtime - a.mtime);
+  $('#chars').innerHTML = list.map(x => `
+    <button class="chr" type="button" data-rel="${esc(x.rel)}" aria-pressed="${x.rel === CHAR_PICK}" title="${esc(x.file)}">
+      <img src="${esc(x.src)}" alt="">
+      <span>${x.rel === own ? 'This channel&rsquo;s character' : esc(x.label)}</span>
+    </button>`).join('')
+    + `<button class="chr up" type="button" id="charUp"><b>+</b><span>Upload your own</span></button>`;
+  document.querySelectorAll('.chr[data-rel]').forEach(b => b.onclick = () => pickChar(b.dataset.rel, true));
+  $('#charUp').onclick = () => $('#charFile').click();
+}
+function pickChar(rel, fillWords){
+  const c = CHANNELS[CH] || {};
+  CHAR_PICK = rel;
+  if(fillWords){
+    // the words must describe the picture, so they follow the pick
+    const x = CHARS.find(k => k.rel === rel) || {};
+    $('#o_char').value = rel === c.character_image ? (c.character || '') : (x.text || CHAR_GENERIC);
+    CHAR_TOUCHED = rel !== c.character_image;
+  }
+  document.querySelectorAll('.chr[data-rel]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.rel === rel)));
+  try{ localStorage.setItem('fr.char.' + CH, rel); }catch(e){}
+}
+$('#charFile').onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if(!f) return;
+  const upBtn = $('#charUp');
+  upBtn.classList.add('busy');
+  upBtn.querySelector('span').textContent = 'Reading your character…';
+  const fd = new FormData();
+  fd.append('file', f);
+  let r;
+  try{ r = await api('/api/characters', {method: 'POST', body: fd}); }
+  catch(err){ r = {error: 'The upload did not go through — is Frontier still running?'}; }
+  await loadChars();
+  drawChars();
+  if(r.error || !r.character) return fail(r.error || 'The upload did not go through.');
+  pickChar(r.character.rel, true);
+};
+
+/* ── length ─────────────────────────────────────────────────────────────── */
+const LENS = [5, 10, 20, 30];
+function buildLens(){
+  $('#lens').innerHTML =
+    LENS.map(m => `<button class="chip" data-m="${m}" aria-pressed="false">${m} min</button>`).join('')
+    + `<span class="chip" id="custom">other <input type="number" min="1" max="60" value="15"></span>`;
+  document.querySelectorAll('.chip[data-m]').forEach(b =>
+    b.onclick = () => pickLen(+b.dataset.m));
+  const inp = $('#custom input');
+  inp.oninput = () => pickLen(Math.max(1, Math.min(60, +inp.value || 1)), true);
+  inp.onclick = e => e.stopPropagation();
+  pickLen(+(localStorage.getItem('fr.min') || 10));
+}
+function pickLen(m, fromInput){
+  MIN = m;
+  document.querySelectorAll('.chip[data-m]').forEach(b =>
+    b.setAttribute('aria-pressed', String(+b.dataset.m === m)));
+  $('#custom').setAttribute('aria-pressed', String(!LENS.includes(m)));
+  if(!fromInput && !LENS.includes(m)) $('#custom input').value = m;
+  try{ localStorage.setItem('fr.min', m); }catch(e){}
+  // Rough, and said as rough — an estimate that pretends to be exact is worse
+  // than none. Renders are dominated by images and voice, both per-minute.
+  updateEstimate();
+}
+
+let CHAR_TOUCHED = false;
+$('#o_char').oninput = () => { CHAR_TOUCHED = true; };
+/* your own script: the length no longer applies */
+function scriptMode(){
+  const has = !!($('#o_script').value || '').trim();
+  $('#lens').classList.toggle('off', has);
+  $('#lenNote').classList.toggle('hidden', !has);
+}
+$('#o_script').oninput = () => { scriptMode(); updateEstimate(); };
+try{ $('#o_extra').value = localStorage.getItem('fr.extra') || ''; }catch(e){}
+$('#o_extra').oninput = e => { try{ localStorage.setItem('fr.extra', e.target.value); }catch(err){} };
+
+/* ── run ────────────────────────────────────────────────────────────────── */
+$('#go').onclick = async () => {
+  const title = $('#title').value.trim();
+  $('#err').classList.add('hidden');
+  if(!title) return fail('Give it a title first.');
+  if(!CH)    return fail('Pick a channel first.');
+
+  const steps = ['script', 'voiceover', 'images', 'pexels', 'video'];
+  if($('#o_thumb').checked) steps.push('thumbnail');
+
+  $('#go').disabled = true;
+  const r = await api('/api/run', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      title, minutes: MIN, style: CH, steps,
+      features:   featPayload(),
+      script:     ($('#o_script').value || '').trim(),
+      extra:      ($('#o_extra').value || '').trim(),
+      burn_subs:  $('#o_subs').checked,
+      force:      $('#o_force').checked,
+      thumb_count:+$('#o_thumbn').value || 2,
+      character:  ($('#o_char').value || '').trim(),
+      character_image: $('#charBox').classList.contains('hidden') ? '' : CHAR_PICK,
+      desc:       $('#o_desc').checked,
+      chapters:   $('#o_desc').checked ? (+$('#o_chapters').value || 0) : 0,
+      sources:    ($('#o_desc').checked && $('#o_sources').checked) ? (+$('#o_sourcesn').value || 0) : 0,
+    })
+  });
+  $('#go').disabled = false;
+  if(r.error) return fail(r.error);
+  WATCH = r.queued[0].slug;
+  $('#run').classList.remove('hidden');
+  $('#runTitle').textContent = r.queued[0].title;
+  $('#log').textContent = '';
+  $('#stages').innerHTML = '';
+  $('#run').scrollIntoView({behavior:'smooth', block:'nearest'});
+};
+function fail(m){ const e = $('#err'); e.textContent = m; e.classList.remove('hidden'); }
+
+/* ── polling ────────────────────────────────────────────────────────────── */
+async function tick(){
+  try{
+    const q = await api('/api/queue');
+    const live = q.jobs.find(j => j.state === 'running');
+    if(live){
+      WATCH = live.slug;
+      $('#run').classList.remove('hidden');
+      $('#runTitle').textContent = live.title;
+      $('#runEl').textContent = fmt(live.elapsed);
+      $('#runBar').style.width = Math.round((live.progress || 0) * 100) + '%';
+    }
+    const rest = q.jobs.filter(j => j.state !== 'running').slice(0, 6);
+    $('#queue').innerHTML = rest.map(j => `
+      <div class="qrow ${j.state}"><span class="dot"></span>
+        <span class="t">${esc(j.title)}</span>
+        <span class="s">${j.state === 'error' ? esc(j.error || 'failed') : j.state}</span>
+      </div>`).join('');
+
+    if(WATCH){
+      const s = await api('/api/status/' + WATCH);
+      if(s.lines){
+        const el = $('#log');
+        const stick = el.scrollTop + el.clientHeight >= el.scrollHeight - 30;
+        el.innerHTML = s.lines.slice(-160).map(fmtLine).join('\n');
+        if(stick) el.scrollTop = el.scrollHeight;
+        drawStages(s.lines, s.done, s.error);
+      }
+      if(s.done){
+        WATCH = null;
+        $('#run').querySelector('.spin').style.visibility = 'hidden';
+        $('#runBar').style.width = '100%';
+        loadLibrary();
+      }
+    }
+    if(!live && !WATCH) $('#run').querySelector('.spin').style.visibility = 'hidden';
+    else $('#run').querySelector('.spin').style.visibility = '';
+  }catch(e){}
+  setTimeout(tick, 1400);
+}
+/* ── the render as stages ─────────────────────────────────────────────────
+   Read off the same log lines the engine prints: each stage knows the lines that show it working and
+   the line that shows it finished. Stages that run side by side can be active together. */
+const STAGES = [
+  {k:'script',  label:'Script',              on:/Script \(Claude\)|outline|writing full script|tightening/i,
+   done:/^\s*script: \d+ words|cached: script/i},
+  {k:'voice',   label:'Voice',               on:/algrow voice|WaveSpeed voice|ai33|recording \d+ parts|voiceover/i,
+   done:/voiceover: audio|cached: audio\.mp3|voice: [\d.]+s/i},
+  {k:'footage', label:'Real footage',        on:/YouTube|usable shots|Pexels|real footage each/i,
+   done:/YouTube: \d+ clips|cached: \d+ YouTube|Pexels: downloading|footage: .*skipped/i},
+  {k:'edit',    label:'Edit plan',           on:/director/i, done:/director: \d+|  director: .* text labels/i},
+  {k:'scenes',  label:'Maps, pages, photos, collage', on:/maps:|headlines:|photofx:|vox:|collage|WaveSpeed: drawing/i,
+   done:/vox: \d+ collage|vox: no moment|=== 4\//},
+  {k:'graphics',label:'Graphics',            on:/docgfx|Graphics \(|motion: |designing .*graphics/i,
+   done:/docgfx: \d+ graphics|motion: \d+ scenes|=== 4\//},
+  {k:'render',  label:'Timeline & render',   on:/plan: |rendering \d+ segments|segments \d+\/\d+/i,
+   done:/segments (\d+)\/\1\b/},
+  {k:'sound',   label:'Sound, captions & labels', on:/^\s*sound:|^\s*subtitles:|text labels: \d+ lines/i, done:/^\s*subtitles:/i},
+  {k:'final',   label:'Final video',         on:/final render|named copy/i, done:/^=== DONE/},
+];
+function drawStages(lines, done, error){
+  const st = STAGES.map(x => ({...x, first:-1, last:-1, fin:-1, note:'', frac:null}));
+  lines.forEach((l, i) => {
+    const txt = l.replace(/^=+\s*|\s*=+\s*(\[[\d:]+\])?\s*$/g, '').trim();
+    st.forEach(x => {
+      if(x.on.test(l)){ if(x.first < 0) x.first = i; x.last = i; if(!/^===/.test(l)) x.note = txt; }
+      if(x.done.test(l)){ x.fin = i; if(!/^===/.test(l)) x.note = txt; }
+    });
+    const m = l.match(/segments (\d+)\/(\d+)/);
+    if(m){ const r = st.find(x => x.k === 'render'); r.frac = (+m[1]) / Math.max(1, +m[2]); }
+  });
+  const n = lines.length, lastStart = Math.max(...st.map(x => x.first));
+  $('#stages').innerHTML = st.map((x, idx) => {
+    let cls = 'wait';
+    const later = st.slice(idx + 1).some(y => y.first >= 0 && y.k !== 'edit' && y.k !== 'scenes' && y.k !== 'footage')
+                  && ['script', 'render', 'sound'].includes(x.k);
+    if(x.fin >= 0 || done || later) cls = x.first >= 0 || x.fin >= 0 ? 'done' : (done ? 'skip' : 'wait');
+    else if(x.first >= 0) cls = (n - 1 - x.last) < 40 || x.last === lastStart ? 'active' : 'done';
+    if(error && cls === 'active') cls = 'error';
+    const note = cls === 'wait' ? '' : esc((x.note || '').slice(0, 120));
+    const mini = x.frac != null && cls !== 'done' ? `<div class="mini"><i style="width:${Math.round(x.frac*100)}%"></i></div>` : '';
+    return `<div class="stg ${cls}"><div class="ic"></div><b>${x.label}</b><span>${note}</span>${mini}</div>`;
+  }).join('');
+}
+const fmtLine = l => /^(ERROR|Traceback)/.test(l) ? `<span class="e">${esc(l)}</span>`
+                  : /^===/.test(l) ? `<b>${esc(l)}</b>` : esc(l);
+const fmt = s => s == null ? '' : `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+
+/* ── library ────────────────────────────────────────────────────────────── */
+async function loadLibrary(){
+  const {jobs, platform} = await api('/api/jobs');
+  const reveal = {mac: 'Open in Finder', windows: 'Open in File Explorer'}[platform] || 'Open folder';
+  $('#libEmpty').classList.toggle('hidden', jobs.length > 0);
+  $('#cards').innerHTML = jobs.map(j => `
+    <div class="card">
+      <video src="/f/video/${j.slug}" controls preload="metadata"></video>
+      <div class="meta"><b>${esc(j.title)}</b>
+        <span>${esc(j.style)} &middot; ${(j.size/1048576).toFixed(0)} MB</span>
+        <div class="acts">
+          <button class="dl reveal" type="button" data-slug="${esc(j.slug)}">${reveal} &rsaquo;</button>
+          ${j.desc ? `<a class="dl" href="/f/desc/${j.slug}" target="_blank">Description, chapters &amp; tags &rsaquo;</a>` : ''}
+        </div></div>
+    </div>`).join('');
+  // the folder opens on this computer, with the video selected
+  document.querySelectorAll('.reveal').forEach(b => b.onclick = async () => {
+    let r;
+    try{ r = await api('/api/reveal/' + encodeURIComponent(b.dataset.slug), {method: 'POST'}); }
+    catch(e){ r = {error: 'Frontier is not running.'}; }
+    if(r.error){ b.textContent = 'Could not open the folder'; b.title = r.error; }
+  });
+}
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"]/g,
+    c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+loadChars().then(loadChannels);
+buildLens();
+loadLibrary();
+tick();
+</script>
+</body>
+</html>

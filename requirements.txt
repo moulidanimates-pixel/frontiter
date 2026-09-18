@@ -1,0 +1,13 @@
+# Frontier — install with:  pip install -r requirements.txt
+# Then once more:           playwright install chromium
+
+requests>=2.31
+python-dotenv>=1.0
+flask>=3.0
+playwright>=1.40          # renders the motion graphics in headless Chromium
+faster-whisper>=1.0       # subtitles, and transcribing a voiceover you bring
+Pillow>=10.0              # thumbnail composition, text measurement
+numpy>=1.24               # sound design, cut detection in footage, depth pop, collage scenes
+# YouTube footage. yt-dlp needs Python 3.10+; on an older Python install it on its own instead:
+#   Mac: brew install yt-dlp     Windows: winget install yt-dlp.yt-dlp
+yt-dlp>=2025.10.22; python_version >= "3.10"
